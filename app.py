@@ -1,125 +1,136 @@
 import streamlit as st
 from openai import OpenAI
 
-# -----------------------------
-# 기본 페이지 설정
-# -----------------------------
-st.set_page_config(
-    page_title="东方AI 대화 시스템",
-    page_icon="🀄",
-    layout="centered"
-)
+# ------------------------------------------------------
+# 페이지 설정
+# ------------------------------------------------------
+st.set_page_config(page_title="竹风对话 · Bamboo Chat", layout="wide")
 
-# -----------------------------
-# 중국풍 스타일 (전체 CSS)
-# -----------------------------
-st.markdown("""
+# ------------------------------------------------------
+# 대나무 테마 스타일
+# ------------------------------------------------------
+BAMBOO_STYLE = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&display=swap');
-
-html, body, [class*="css"] {
-    font-family: 'Noto Serif SC', serif !important;
-    background: #f9f5ef;
+body {
+    background: url('https://i.imgur.com/YTgLx5n.png'); /* 은은한 대나무 문양 */
+    background-size: cover;
+    background-attachment: fixed;
+    font-family: 'Noto Serif SC', serif;
 }
 
-.chat-box {
-    background: #fff9f2;
-    border: 2px solid #d4a373;
-    border-radius: 12px;
-    padding: 12px;
-    margin-bottom: 10px;
+/* 중앙 큰 제목 */
+.main-title {
+    text-align: center; 
+    color: #154c2e; 
+    font-size: 42px;
+    margin-top: 10px;
+    text-shadow: 1px 1px 1px #ccc;
 }
 
-.user {
-    color: #b32d2e;
-    font-weight: bold;
+/* 대화 박스 */
+.chat-container {
+    border-radius: 15px;
+    padding: 20px;
+    background: rgba(255, 255, 245, 0.85);
+    border: 3px solid #d1c6a8;
+    backdrop-filter: blur(3px);
 }
 
-.bot {
-    color: #5b3716;
+/* 유저 메시지 */
+.user-msg {
+    background: #d4ffe1;
+    color: #003c1f;
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin: 8px 0;
+    text-align: right;
+    border: 1px solid #91c7a6;
 }
 
+/* AI 메시지 */
+.bot-msg {
+    background: #fff4d7;
+    color: #5a3b00;
+    padding: 10px 15px;
+    border-radius: 15px;
+    margin: 8px 0;
+    text-align: left;
+    border: 1px solid #e3c59b;
+}
+
+/* 입력창 */
+input[type="text"] {
+    background: #fbfaf4 !important;
+    border-radius: 10px !important;
+    border: 2px solid #8bb892 !important;
+    padding: 10px !important;
+}
+
+/* 대나무 장식 선 */
+.bamboo-line {
+    width: 100%;
+    height: 4px;
+    background: url('https://i.imgur.com/fo0Qe0z.png') repeat-x;
+    margin: 20px 0;
+}
 </style>
-""", unsafe_allow_html=True)
+"""
 
-# -----------------------------
-# 제목
-# -----------------------------
-st.markdown(
-    "<h1 style='text-align:center;color:#b32d2e;'>✨ 어른스러운 东方AI 대화 시스템 ✨</h1>",
-    unsafe_allow_html=True
-)
-st.markdown(
-    "<p style='text-align:center;color:#5b3716;'>동양의 지혜로 당신과 대화를 나눕니다.</p>",
-    unsafe_allow_html=True
-)
+st.markdown(BAMBOO_STYLE, unsafe_allow_html=True)
 
-# -----------------------------
-# API Key 입력
-# -----------------------------
-api_key = st.text_input("🔑 OpenAI API Key 입력", type="password", key="api_key")
-if not api_key:
-    st.stop()
+# ------------------------------------------------------
+# OpenAI 클라이언트 (Secret Key)
+# ------------------------------------------------------
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-client = OpenAI(api_key=api_key)
-
-# -----------------------------
-# 대화 메시지 리스트 초기화
-# -----------------------------
+# ------------------------------------------------------
+# 메시지 초기화
+# ------------------------------------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {
-            "role": "system",
-            "content": "당신은 지혜롭고 어른스러운 중국풍 AI입니다. 품격 있고 부드러운 말투로 대화하세요."
-        }
+        {"role": "assistant", "content": "안녕하세요. 무엇을 도와드릴까요? (竹风对话)"}
     ]
 
-# -----------------------------
-# 입력 처리 함수 (반복 입력 방지)
-# -----------------------------
-def handle_input():
-    user_msg = st.session_state.input
+# ------------------------------------------------------
+# 제목
+# ------------------------------------------------------
+st.markdown("<div class='main-title'>🎋 竹风对话 · Bamboo AI Assistant</div>", unsafe_allow_html=True)
+st.markdown("<div class='bamboo-line'></div>", unsafe_allow_html=True)
 
-    if not user_msg.strip():
-        return
+# ------------------------------------------------------
+# 채팅 박스
+# ------------------------------------------------------
+st.markdown("<div class='chat-container'>", unsafe_allow_html=True)
 
-    # 사용자 메시지 저장
-    st.session_state.messages.append({"role": "user", "content": user_msg})
-
-    # AI 응답 생성
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=st.session_state.messages
-    )
-
-    reply = response.choices[0].message.content
-
-    # AI 메시지 저장
-    st.session_state.messages.append({"role": "assistant", "content": reply})
-
-    # 입력창 초기화
-    st.session_state.input = ""
-
-
-# -----------------------------
-# 기존 대화 출력
-# -----------------------------
 for msg in st.session_state.messages:
-    if msg["role"] == "system":
-        continue
+    if msg["role"] == "user":
+        st.markdown(f"<div class='user-msg'>{msg['content']}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div class='bot-msg'>{msg['content']}</div>", unsafe_allow_html=True)
 
-    css_class = "user" if msg["role"] == "user" else "bot"
-    st.markdown(
-        f"<div class='chat-box {css_class}'>{msg['content']}</div>",
-        unsafe_allow_html=True
+st.markdown("</div>", unsafe_allow_html=True)
+
+# ------------------------------------------------------
+# 사용자 입력
+# ------------------------------------------------------
+user_input = st.text_input("대화창", "", key="input_text", placeholder="메시지를 입력하세요...")
+
+if user_input:
+    # 유저 메시지 추가
+    st.session_state.messages.append({"role": "user", "content": user_input})
+
+    # OpenAI 호출
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=st.session_state.messages,
+        temperature=0.7
     )
 
-# -----------------------------
-# 대화 입력창 (엔터 자동 전송)
-# -----------------------------
-st.text_input(
-    "💬 대화창",
-    placeholder="대화를 입력하세요...",
-    key="input",
-    on_change=handle_input
-)
+    bot_reply = response.choices[0].message["content"]
+
+    # 반복 방지
+    if st.session_state.messages[-1]["content"] != bot_reply:
+        st.session_state.messages.append({"role": "assistant", "content": bot_reply})
+
+    st.session_state.input_text = ""
+    st.experimental_rerun()
